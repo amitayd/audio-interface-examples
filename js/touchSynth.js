@@ -16,13 +16,15 @@ function startTouchSynth() {
     height: '20%'
   });
 
-  var effect1 = new Tone.AutoWah();
-  var synth1 = new Tone.SimpleSynth().chain(effect1, Tone.Master);
-  var synth2 = new Tone.SimpleSynth().toMaster();
+  var effect1 = new Tone.Chorus();
+  var synths = [
+    new Tone.SimpleSynth().chain(effect1, Tone.Master),
+    new Tone.AMSynth().toMaster()
+  ];
+
 
 
   touchWidget.on('*', function (data) {
-
     if (data.touch0 && data.touch0.x && data.touch0.y) {
       touch(0, data.touch0.x, data.touch0.y);
     } else {
@@ -37,43 +39,37 @@ function startTouchSynth() {
 
   });
 
-  tilt.on('*', function(data) {
-    effect1.wet = Math.abs(data.x);
+  tilt.on('*', function (data) {
+    effect1.wet.value = Math.abs(data.x);
   });
 
 
   function touch(touchIndex, x, y) {
-    var freq = x * 50 + 400;
-    var volume = y;
-
-    switch (touchIndex) {
-    case 0:
-      if (!synth1.isPlaying) {
-        synth1.triggerAttack(freq, null, volume);
-        synth1.isPlaying = true;
-      } else {
-        synth1.setNote(freq);
-        synth1.volume.value = volume;
-
-      }
-      break;
-    case 1:
-      synth2.triggerAttack(freq, null, volume);
-      break;
+    var synth = synths[touchIndex];
+    if (!synth) {
+      return;
     }
 
+    var freq = x * 50 + 400;
+    if (touchIndex === 0) {
+      freq = nx.mtof(Math.floor(x * 10) + 60);
+    }
+    // No reason why gainToDB is on Synth in particular, it's only since it has Tone as the prototype
+    var volumeDb = synth.gainToDb(Math.max(y, 0));
+
+    synth.volume.value = volumeDb;
+    if (!synth.isPlaying) {
+      synth.triggerAttack(freq, null);
+      synth.isPlaying = true;
+    } else {
+      synth.setNote(freq);
+    }
   }
 
   function stopTouch(touchIndex) {
-    switch (touchIndex) {
-    case 0:
-      synth1.triggerRelease();
-      synth1.isPlaying = false;
-      break;
-    case 1:
-      synth2.triggerRelease();
-      break;
-    }
+    var synth = synths[touchIndex];
+    synth.triggerRelease();
+    synth.isPlaying = false;
   }
 
 
