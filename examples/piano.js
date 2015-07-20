@@ -21,6 +21,7 @@ function runApp() {
 
   keyboard.onPress(function (note) {
     console.log("Press. Note: %s", note);
+    // For some reason triggerAttack(note, 0) has better performance, less clicks
     synth.triggerAttack(note);
   });
 
