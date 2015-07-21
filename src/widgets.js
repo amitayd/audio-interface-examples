@@ -102,21 +102,15 @@ var WIDGET_DEFS = {
     nxType: 'button',
     events: ['onTick'],
     attributes: {
-      bpm: dataAttribute('bpm'),
-      intervalMS: dataAttribute('intervalMS')
+      interval: dataAttribute('interval'),
     },
     init: function (widget) {
 
       widget.start = function () {
-        var intervalMS = 1000;
-        if (widget.bpm) {
-          intervalMS = 60 / widget.bpm * 1000;
-        } else if (widget.intervalMS) {
-          intervalMS = widget.intervalMS;
-        }
+        var interval = widget.interval || '4n';
 
-        widget._interval = setInterval(function () {
-          widget._emitter.emit('onTick');
+        widget._interval = Tone.Transport.setInterval(function (time) {
+          widget._emitter.emit('onTick', time);
           widget._nxWidget.val.press = 1;
           widget._nxWidget.draw();
           window.setTimeout(function () {
@@ -124,11 +118,11 @@ var WIDGET_DEFS = {
             widget._nxWidget.draw();
           }, 100);
 
-        }, intervalMS);
+        }, interval);
       };
 
       widget.stop = function () {
-        clearInterval(widget._interval);
+        Tone.Transport.clearInterval(widget._interval);
       };
     }
   },
@@ -149,14 +143,9 @@ function createWidget(type, attributes) {
 
   widget._emitter = emitter;
 
-  var canvasElement = document.createElement('canvas');
-  canvasElement.id = createWidgetId(type);
-  canvasElement.className = 'widget';
-  canvasElement.style.width = '100%';
-  canvasElement.style.height = '100%';
+
   var containerElement = document.createElement('div');
   containerElement.className = "widgetContainer";
-  containerElement.appendChild(canvasElement);
   window.document.body.appendChild(containerElement);
 
   // Create style attributes as getter and setter with nx widget initialization
@@ -186,6 +175,8 @@ function createWidget(type, attributes) {
 
   if (widgetDef.nxType) {
     var element = document.createElement('canvas');
+    element.id = createWidgetId(type);
+    element.className = 'widget';
     element.style.width = '100%';
     element.style.height = '100%';
 

@@ -12,3 +12,10 @@ Object.keys(widgets).forEach(function (key) {
 Object.keys(synth).forEach(function (key) {
   window[key] = synth[key];
 });
+
+Tone.Transport.start();
+
+
+window.setBPM = function(bpm) {
+  Tone.Transport.bpm.value = bpm;
+};
