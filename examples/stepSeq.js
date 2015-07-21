@@ -7,7 +7,7 @@ var metronomeWidget = createWidget('metronome', {
   top: '0%',
   left: '0%',
   //Amitay: using Tone.js intervals: can be either notes (relative to global bpm) or time
-  interval: '16n'
+  interval: '4n'
 });
 
 
@@ -17,7 +17,7 @@ var matrixWidget = createWidget('matrix', {
   top: '10%',
   left: '0%',
   rows: 3,
-  cols: 64
+  cols: 8
 });
 
 
