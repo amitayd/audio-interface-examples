@@ -119,17 +119,23 @@
 	    nxType: 'comment',
 	    nxAttributes: {
 	      'text': {
-	        getter: function(nxWidget) {
+	        getter: function (nxWidget) {
 	          return nxWidget.val.text;
 	        },
-	        setter: function(nxWidget, value) {
+	        setter: function (nxWidget, value) {
 	          nxWidget.val.text = value;
 	          nxWidget.draw();
 	        }
 
 	      }
 	    }
-	  }
+	  },
+
+	  'metronome': {
+	    init: function (widget) {
+
+	    }
+	  },
 	};
 
 
@@ -139,13 +145,22 @@
 	    throw new Error('No widget type defined: ' + type);
 	  }
 
-
-	  var element = document.createElement('canvas');
-	  element.id = createWidgetId(type);
-	  element.className = 'widget';
-	  document.body.appendChild(element);
-
 	  var widget = {};
+	  var emitter = eventEmitter({});
+
+	  var canvasElement = document.createElement('canvas');
+	  canvasElement.id = createWidgetId(type);
+	  canvasElement.className = 'widget';
+	  canvasElement.style.width = '100%';
+	  canvasElement.style.height = '100%';
+	  var containerElement = document.createElement('div');
+	  containerElement.className = "widgetContainer";
+	  containerElement.appendChild(canvasElement);
+	  window.document.body.appendChild(containerElement);
+
+
+
+
 
 
 
@@ -153,42 +168,81 @@
 	  Object.keys(STYLE_ATTRIBUTES).forEach(function (attribute) {
 	    Object.defineProperty(widget, attribute, {
 	      get: function () {
-	        return element.style[attribute];
+	        return containerElement.style[attribute];
 	      },
 	      set: function (value) {
-	        element.style[attribute] = value;
-	        //nxWidget.resize();
+	        containerElement.style[attribute] = value;
+	        // nx widget needs to be resized if the container element is resized
+	        if (widget._nxWidget) {
+	          containerElement.style[attribute] = value;
+	          var width = Number(window.getComputedStyle(containerElement, null).getPropertyValue('width').slice(0, -2));
+	          var height = Number(window.getComputedStyle(containerElement, null).getPropertyValue('height').slice(0, -2));
+	          console.log('resizing');
+	          widget._nxWidget.resize(width, height);
+	        }
+
 	      }
 	    });
 
 	    // Canvas properties should be set in advance for nexusosc to work
 	    if (attributes[attribute]) {
-	      element.style[attribute] = attributes[attribute];
+	      containerElement.style[attribute] = attributes[attribute];
 	    }
 	  });
 
-	  var nxWidget = nx.transform(element, widgetDef.nxType);
+	  if (widgetDef.nxType) {
+	    var element = document.createElement('canvas');
+	    element.style.width = '100%';
+	    element.style.height = '100%';
 
-	  // Create nx widget attributes as getter and setter with nx widget initialization
-	  Object.keys(widgetDef.nxAttributes).forEach(function (attribute) {
-	    function defaultGetter() {
-	      return nxWidget(attribute);
-	    }
+	    element.id = createWidgetId(type);
+	    element.className = 'widget';
+	    containerElement.appendChild(element);
 
-	    function defaultSetter(value) {
-	      nxWidget[attribute] = value;
-	      nxWidget.init();
-	    }
+	    var nxWidget = nx.transform(element, widgetDef.nxType);
+	    widget._nxWidget = nxWidget;
 
-	    var attributeSettings = widgetDef.nxAttributes[attribute];
-	    var customGetter = attributeSettings.getter && _.partial(attributeSettings.getter, nxWidget);
-	    var customSetter = attributeSettings.setter && _.partial(attributeSettings.setter, nxWidget);
+	    // Create nx widget attributes as getter and setter with nx widget initialization
+	    Object.keys(widgetDef.nxAttributes).forEach(function (attribute) {
+	      function defaultGetter() {
+	        return nxWidget(attribute);
+	      }
 
-	    Object.defineProperty(widget, attribute, {
-	      get: customGetter || defaultGetter,
-	      set: customSetter || defaultSetter
+	      function defaultSetter(value) {
+	        nxWidget[attribute] = value;
+	        nxWidget.init();
+	      }
+
+	      var attributeSettings = widgetDef.nxAttributes[attribute];
+	      var customGetter = attributeSettings.getter && _.partial(attributeSettings.getter, nxWidget);
+	      var customSetter = attributeSettings.setter && _.partial(attributeSettings.setter, nxWidget);
+
+	      Object.defineProperty(widget, attribute, {
+	        get: customGetter || defaultGetter,
+	        set: customSetter || defaultSetter
+	      });
 	    });
-	  });
+
+
+	    if (widgetDef.nxEventRoute) {
+	      nxWidget.on('*', function (data) {
+	        widgetDef.nxEventRoute(widget, emitter, data);
+	      });
+	    }
+
+	    if (widgetDef.events) {
+	      widgetDef.events.forEach(function (eventName) {
+	        // TODO: use currying (using lodash?) to make this clearer, since we're only proxying the emitter function
+	        widget[eventName] = function (listener) {
+	          emitter.on(eventName, listener);
+	        };
+	      });
+	    }
+
+
+	    nxWidget.init();
+	  }
+
 
 	  // Apply the passed attributes to the widget
 	  Object.keys(attributes).forEach(function (attribute) {
@@ -205,22 +259,6 @@
 
 
 	  // Route nx event to the router function of the widget
-	  var emitter = eventEmitter({});
-	  nxWidget.on('*', function (data) {
-	    widgetDef.nxEventRoute(widget, emitter, data);
-	  });
-
-	  if (widgetDef.events) {
-	    widgetDef.events.forEach(function (eventName) {
-	      // TODO: use currying (using lodash?) to make this clearer, since we're only proxying the emitter function
-	      widget[eventName] = function (listener) {
-	        emitter.on(eventName, listener);
-	      };
-	    });
-	  }
-
-
-	  nxWidget.init();
 
 	  return widget;
 	}
@@ -34561,8 +34599,8 @@
 
 	'use strict';
 
-	var d        = __webpack_require__(10)
-	  , callable = __webpack_require__(9)
+	var d        = __webpack_require__(9)
+	  , callable = __webpack_require__(10)
 
 	  , apply = Function.prototype.apply, call = Function.prototype.call
 	  , create = Object.create, defineProperty = Object.defineProperty
@@ -34715,18 +34753,6 @@
 
 	'use strict';
 
-	module.exports = function (fn) {
-		if (typeof fn !== 'function') throw new TypeError(fn + " is not a function");
-		return fn;
-	};
-
-
-/***/ },
-/* 10 */
-/***/ function(module, exports, __webpack_require__) {
-
-	'use strict';
-
 	var assign        = __webpack_require__(13)
 	  , normalizeOpts = __webpack_require__(11)
 	  , isCallable    = __webpack_require__(12)
@@ -34791,6 +34817,18 @@
 
 
 /***/ },
+/* 10 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	module.exports = function (fn) {
+		if (typeof fn !== 'function') throw new TypeError(fn + " is not a function");
+		return fn;
+	};
+
+
+/***/ },
 /* 11 */
 /***/ function(module, exports, __webpack_require__) {
 
@@ -34830,9 +34868,9 @@
 
 	'use strict';
 
-	module.exports = __webpack_require__(17)()
+	module.exports = __webpack_require__(15)()
 		? Object.assign
-		: __webpack_require__(18);
+		: __webpack_require__(16);
 
 
 /***/ },
@@ -34841,40 +34879,13 @@
 
 	'use strict';
 
-	module.exports = __webpack_require__(15)()
+	module.exports = __webpack_require__(17)()
 		? String.prototype.contains
-		: __webpack_require__(16);
+		: __webpack_require__(18);
 
 
 /***/ },
 /* 15 */
-/***/ function(module, exports, __webpack_require__) {
-
-	'use strict';
-
-	var str = 'razdwatrzy';
-
-	module.exports = function () {
-		if (typeof str.contains !== 'function') return false;
-		return ((str.contains('dwa') === true) && (str.contains('foo') === false));
-	};
-
-
-/***/ },
-/* 16 */
-/***/ function(module, exports, __webpack_require__) {
-
-	'use strict';
-
-	var indexOf = String.prototype.indexOf;
-
-	module.exports = function (searchString/*, position*/) {
-		return indexOf.call(this, searchString, arguments[1]) > -1;
-	};
-
-
-/***/ },
-/* 17 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -34889,7 +34900,7 @@
 
 
 /***/ },
-/* 18 */
+/* 16 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -34913,6 +34924,33 @@
 		}
 		if (error !== undefined) throw error;
 		return dest;
+	};
+
+
+/***/ },
+/* 17 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	var str = 'razdwatrzy';
+
+	module.exports = function () {
+		if (typeof str.contains !== 'function') return false;
+		return ((str.contains('dwa') === true) && (str.contains('foo') === false));
+	};
+
+
+/***/ },
+/* 18 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	var indexOf = String.prototype.indexOf;
+
+	module.exports = function (searchString/*, position*/) {
+		return indexOf.call(this, searchString, arguments[1]) > -1;
 	};
 
 

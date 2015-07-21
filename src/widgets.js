@@ -54,17 +54,23 @@ var WIDGET_DEFS = {
     nxType: 'comment',
     nxAttributes: {
       'text': {
-        getter: function(nxWidget) {
+        getter: function (nxWidget) {
           return nxWidget.val.text;
         },
-        setter: function(nxWidget, value) {
+        setter: function (nxWidget, value) {
           nxWidget.val.text = value;
           nxWidget.draw();
         }
 
       }
     }
-  }
+  },
+
+  'metronome': {
+    init: function (widget) {
+
+    }
+  },
 };
 
 
@@ -74,13 +80,22 @@ function createWidget(type, attributes) {
     throw new Error('No widget type defined: ' + type);
   }
 
-
-  var element = document.createElement('canvas');
-  element.id = createWidgetId(type);
-  element.className = 'widget';
-  document.body.appendChild(element);
-
   var widget = {};
+  var emitter = eventEmitter({});
+
+  var canvasElement = document.createElement('canvas');
+  canvasElement.id = createWidgetId(type);
+  canvasElement.className = 'widget';
+  canvasElement.style.width = '100%';
+  canvasElement.style.height = '100%';
+  var containerElement = document.createElement('div');
+  containerElement.className = "widgetContainer";
+  containerElement.appendChild(canvasElement);
+  window.document.body.appendChild(containerElement);
+
+
+
+
 
 
 
@@ -88,42 +103,81 @@ function createWidget(type, attributes) {
   Object.keys(STYLE_ATTRIBUTES).forEach(function (attribute) {
     Object.defineProperty(widget, attribute, {
       get: function () {
-        return element.style[attribute];
+        return containerElement.style[attribute];
       },
       set: function (value) {
-        element.style[attribute] = value;
-        //nxWidget.resize();
+        containerElement.style[attribute] = value;
+        // nx widget needs to be resized if the container element is resized
+        if (widget._nxWidget) {
+          containerElement.style[attribute] = value;
+          var width = Number(window.getComputedStyle(containerElement, null).getPropertyValue('width').slice(0, -2));
+          var height = Number(window.getComputedStyle(containerElement, null).getPropertyValue('height').slice(0, -2));
+          console.log('resizing');
+          widget._nxWidget.resize(width, height);
+        }
+
       }
     });
 
     // Canvas properties should be set in advance for nexusosc to work
     if (attributes[attribute]) {
-      element.style[attribute] = attributes[attribute];
+      containerElement.style[attribute] = attributes[attribute];
     }
   });
 
-  var nxWidget = nx.transform(element, widgetDef.nxType);
+  if (widgetDef.nxType) {
+    var element = document.createElement('canvas');
+    element.style.width = '100%';
+    element.style.height = '100%';
 
-  // Create nx widget attributes as getter and setter with nx widget initialization
-  Object.keys(widgetDef.nxAttributes).forEach(function (attribute) {
-    function defaultGetter() {
-      return nxWidget(attribute);
-    }
+    element.id = createWidgetId(type);
+    element.className = 'widget';
+    containerElement.appendChild(element);
 
-    function defaultSetter(value) {
-      nxWidget[attribute] = value;
-      nxWidget.init();
-    }
+    var nxWidget = nx.transform(element, widgetDef.nxType);
+    widget._nxWidget = nxWidget;
 
-    var attributeSettings = widgetDef.nxAttributes[attribute];
-    var customGetter = attributeSettings.getter && _.partial(attributeSettings.getter, nxWidget);
-    var customSetter = attributeSettings.setter && _.partial(attributeSettings.setter, nxWidget);
+    // Create nx widget attributes as getter and setter with nx widget initialization
+    Object.keys(widgetDef.nxAttributes).forEach(function (attribute) {
+      function defaultGetter() {
+        return nxWidget(attribute);
+      }
 
-    Object.defineProperty(widget, attribute, {
-      get: customGetter || defaultGetter,
-      set: customSetter || defaultSetter
+      function defaultSetter(value) {
+        nxWidget[attribute] = value;
+        nxWidget.init();
+      }
+
+      var attributeSettings = widgetDef.nxAttributes[attribute];
+      var customGetter = attributeSettings.getter && _.partial(attributeSettings.getter, nxWidget);
+      var customSetter = attributeSettings.setter && _.partial(attributeSettings.setter, nxWidget);
+
+      Object.defineProperty(widget, attribute, {
+        get: customGetter || defaultGetter,
+        set: customSetter || defaultSetter
+      });
     });
-  });
+
+
+    if (widgetDef.nxEventRoute) {
+      nxWidget.on('*', function (data) {
+        widgetDef.nxEventRoute(widget, emitter, data);
+      });
+    }
+
+    if (widgetDef.events) {
+      widgetDef.events.forEach(function (eventName) {
+        // TODO: use currying (using lodash?) to make this clearer, since we're only proxying the emitter function
+        widget[eventName] = function (listener) {
+          emitter.on(eventName, listener);
+        };
+      });
+    }
+
+
+    nxWidget.init();
+  }
+
 
   // Apply the passed attributes to the widget
   Object.keys(attributes).forEach(function (attribute) {
@@ -140,22 +194,6 @@ function createWidget(type, attributes) {
 
 
   // Route nx event to the router function of the widget
-  var emitter = eventEmitter({});
-  nxWidget.on('*', function (data) {
-    widgetDef.nxEventRoute(widget, emitter, data);
-  });
-
-  if (widgetDef.events) {
-    widgetDef.events.forEach(function (eventName) {
-      // TODO: use currying (using lodash?) to make this clearer, since we're only proxying the emitter function
-      widget[eventName] = function (listener) {
-        emitter.on(eventName, listener);
-      };
-    });
-  }
-
-
-  nxWidget.init();
 
   return widget;
 }
