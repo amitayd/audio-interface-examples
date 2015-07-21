@@ -5,7 +5,8 @@ function runApp() {
     height: '100%',
     top: '0%',
     left: '0%',
-    octaves: 2
+    octaves: 3,
+    startNote: 'a5'
   });
 
   window.noteLabel = createWidget('label', {

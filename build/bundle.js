@@ -64,7 +64,7 @@
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
-	/* global nx, module, require */
+	/* global nx, Tone, module, require */
 
 	var musical = __webpack_require__(5);
 	var _ = __webpack_require__(6);
@@ -89,21 +89,43 @@
 	  'height': true,
 	};
 
+	function nxAttribute(attributeName) {
+	  return {
+	    getter: function (widget) {
+	      return widget._nxWidget[attributeName];
+	    },
+	    setter: function (widget, value) {
+	      widget._nxWidget[attributeName] = value;
+	      widget._nxWidget.init();
+	    }
+	  };
+	}
+
+	function dataAttribute(attributeName) {
+	  return {
+	    getter: function (widget) {
+	      return widget._data[attributeName];
+	    },
+	    setter: function (widget, value) {
+	      widget._data[attributeName] = value;
+	    }
+	  };
+	}
 
 	var WIDGET_DEFS = {
 
 	  'keyboard': {
 	    nxType: 'keyboard',
 	    events: ['onPress', 'onRelease'],
-	    nxAttributes: {
-	      'octaves': {},
+	    attributes: {
+	      'octaves': nxAttribute('octaves'),
 	      'startNote': {
-	        getter: function (nxWidget) {
-	          return midiToNote(nxWidget.midibase);
+	        getter: function (widget) {
+	          return midiToNote(widget._nxWidget.midibase);
 	        },
-	        setter: function (nxWidget, value) {
-	          nxWidget.midibase = noteToMidi(value);
-	          nxWidget.init();
+	        setter: function (widget, value) {
+	          widget._nxWidget.midibase = noteToMidi(value);
+	          widget._nxWidget.init();
 	        },
 	      }
 	    },
@@ -117,23 +139,62 @@
 	  },
 	  'label': {
 	    nxType: 'comment',
-	    nxAttributes: {
+	    attributes: {
 	      'text': {
-	        getter: function (nxWidget) {
-	          return nxWidget.val.text;
+	        getter: function (widget) {
+	          return widget._nxWidget.val.text;
 	        },
-	        setter: function (nxWidget, value) {
-	          nxWidget.val.text = value;
-	          nxWidget.draw();
+	        setter: function (widget, value) {
+	          widget._nxWidget.val.text = value;
+	          widget._nxWidget.draw();
 	        }
 
 	      }
 	    }
 	  },
 
+	  'matrix': {
+	    nxType: 'matrix',
+	    attributes: {
+	      cols: nxAttribute('col'),
+	      rows: nxAttribute('row'),
+	      place: nxAttribute('place'),
+	      matrix: nxAttribute('matrix')
+	    }
+	  },
+
 	  'metronome': {
+	    nxType: 'button',
+	    events: ['onTick'],
+	    attributes: {
+	      bpm: dataAttribute('bpm'),
+	      intervalMS: dataAttribute('intervalMS')
+	    },
 	    init: function (widget) {
 
+	      widget.start = function () {
+	        var intervalMS = 1000;
+	        if (widget.bpm) {
+	          intervalMS = 60 / widget.bpm * 1000;
+	        } else if (widget.intervalMS) {
+	          intervalMS = widget.intervalMS;
+	        }
+
+	        widget._interval = setInterval(function () {
+	          widget._emitter.emit('onTick');
+	          widget._nxWidget.val.press = 1;
+	          widget._nxWidget.draw();
+	          window.setTimeout(function () {
+	            widget._nxWidget.val.press = 0;
+	            widget._nxWidget.draw();
+	          }, 100);
+
+	        }, intervalMS);
+	      };
+
+	      widget.stop = function () {
+	        clearInterval(widget._interval);
+	      };
 	    }
 	  },
 	};
@@ -145,8 +206,13 @@
 	    throw new Error('No widget type defined: ' + type);
 	  }
 
-	  var widget = {};
+	  var widget = {
+	    _data: {},
+	    _nxWidget: undefined
+	  };
 	  var emitter = eventEmitter({});
+
+	  widget._emitter = emitter;
 
 	  var canvasElement = document.createElement('canvas');
 	  canvasElement.id = createWidgetId(type);
@@ -157,12 +223,6 @@
 	  containerElement.className = "widgetContainer";
 	  containerElement.appendChild(canvasElement);
 	  window.document.body.appendChild(containerElement);
-
-
-
-
-
-
 
 	  // Create style attributes as getter and setter with nx widget initialization
 	  Object.keys(STYLE_ATTRIBUTES).forEach(function (attribute) {
@@ -177,7 +237,6 @@
 	          containerElement.style[attribute] = value;
 	          var width = Number(window.getComputedStyle(containerElement, null).getPropertyValue('width').slice(0, -2));
 	          var height = Number(window.getComputedStyle(containerElement, null).getPropertyValue('height').slice(0, -2));
-	          console.log('resizing');
 	          widget._nxWidget.resize(width, height);
 	        }
 
@@ -202,27 +261,6 @@
 	    var nxWidget = nx.transform(element, widgetDef.nxType);
 	    widget._nxWidget = nxWidget;
 
-	    // Create nx widget attributes as getter and setter with nx widget initialization
-	    Object.keys(widgetDef.nxAttributes).forEach(function (attribute) {
-	      function defaultGetter() {
-	        return nxWidget(attribute);
-	      }
-
-	      function defaultSetter(value) {
-	        nxWidget[attribute] = value;
-	        nxWidget.init();
-	      }
-
-	      var attributeSettings = widgetDef.nxAttributes[attribute];
-	      var customGetter = attributeSettings.getter && _.partial(attributeSettings.getter, nxWidget);
-	      var customSetter = attributeSettings.setter && _.partial(attributeSettings.setter, nxWidget);
-
-	      Object.defineProperty(widget, attribute, {
-	        get: customGetter || defaultGetter,
-	        set: customSetter || defaultSetter
-	      });
-	    });
-
 
 	    if (widgetDef.nxEventRoute) {
 	      nxWidget.on('*', function (data) {
@@ -230,19 +268,33 @@
 	      });
 	    }
 
-	    if (widgetDef.events) {
-	      widgetDef.events.forEach(function (eventName) {
-	        // TODO: use currying (using lodash?) to make this clearer, since we're only proxying the emitter function
-	        widget[eventName] = function (listener) {
-	          emitter.on(eventName, listener);
-	        };
-	      });
-	    }
-
-
 	    nxWidget.init();
 	  }
 
+	  // Create  attributes as getters and setters
+	  Object.keys(widgetDef.attributes).forEach(function (attribute) {
+	    var attributeSettings = widgetDef.attributes[attribute];
+	    var getter = _.partial(attributeSettings.getter, widget);
+	    var setter = _.partial(attributeSettings.setter, widget);
+
+	    Object.defineProperty(widget, attribute, {
+	      get: getter,
+	      set: setter
+	    });
+	  });
+
+	  if (widgetDef.init) {
+	    widgetDef.init(widget);
+	  }
+
+	  if (widgetDef.events) {
+	    widgetDef.events.forEach(function (eventName) {
+	      // TODO: use currying (using lodash?) to make this clearer, since we're only proxying the emitter function
+	      widget[eventName] = function (listener) {
+	        emitter.on(eventName, listener);
+	      };
+	    });
+	  }
 
 	  // Apply the passed attributes to the widget
 	  Object.keys(attributes).forEach(function (attribute) {
