@@ -1,4 +1,4 @@
-function startSimon() {
+function runApp() {
 
   var button1 = createWidget('button', {
     width: '50%',
