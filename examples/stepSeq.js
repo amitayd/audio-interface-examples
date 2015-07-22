@@ -1,6 +1,4 @@
-function runApp() {
 
-} // TODO: put correct location
 var metronomeWidget = createWidget('metronome', {
   width: '10%',
   height: '10%',

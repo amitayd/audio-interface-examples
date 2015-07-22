@@ -1,0 +1,136 @@
+<!doctype html>
+<html>
+<head>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+    <script type="text/javascript" src="vendor/q.js"></script>
+    <script type="text/javascript" src="vendor/codemirror-5.5/lib/codemirror.js"></script>
+    <link rel="stylesheet" href="vendor/codemirror-5.5//lib/codemirror.css">
+    <script src="vendor/codemirror-5.5/mode/javascript/javascript.js"></script>
+    <script type="text/javascript" src="src/sandBox.js"></script>
+    
+    <style>
+        body {
+            width: 100%;
+            height: 100%;
+        }
+        #code, .CodeMirror {
+            position:absolute;
+            width: 50%;
+            left: 0%;
+            height: 90%;
+        }
+        #run {
+            position: absolute;
+            top: 95%;
+        }
+        #result {
+            position:absolute;
+            width: 45%;
+            left: 50%;
+            height: 90%;
+        }
+        .examples {
+            position: absolute;
+            top: 95%;
+            left: 20%;
+            width: 30%;
+        }
+
+    </style>
+
+</head>
+<body>
+<template id="codeTemplate">
+<!doctype html>
+<html>
+    <head>
+        <title>Web Audio examples</title>
+        <script type="text/javascript" src="build/bundle.js"></script>
+        <script>
+
+        nx.onload = function() {
+            {{CODE}}
+        };
+
+
+        </script>
+        <style>
+        span div {
+            position: relative;
+        }
+            canvas {
+                border-radius:0 !important;
+            }
+            .widget {
+                position:absolute;
+            }
+            .widgetContainer {
+                position:absolute;
+            }
+            body {
+                background-color:#ddd;margin:0;padding:0;width:100%;height:100%;position:absolute;
+            }
+        </style>
+    </head>
+
+    <body>
+
+    </body>
+</html>
+</template>
+
+<textarea id="code">
+    // Paste your code here
+</textarea>
+
+<button id="run">run</button>
+
+
+
+<div id="result"></div>
+
+<select class="examples">
+    <option value=''>Select an example...</option>
+</select>
+
+</body>
+</html>
+
+<script>
+
+    var $examples = $('.examples');
+
+    var template = document.getElementById('codeTemplate').innerHTML;
+    $(function() {
+        function loadCode(url) {
+            if (!url) {
+                return;
+            }
+            $.get( url, function(data) {
+                  //$('#code').val(data);
+                  codeEditor.setValue(data);
+                }, 'text');
+        }
+
+
+        var codeEditor = CodeMirror.fromTextArea(document.getElementById('code'));
+        $.get( "examples/examples.json", function(data) {
+            $.each(data,function(key, value) {
+                $examples.append('<option value=' + key + '>' + value + '</option>');
+            });
+            $examples.on('change', function() {
+                console.log(loadCode);
+                 loadCode($examples.val());
+            });
+        }, 'json').fail(console.error.bind(console));
+
+
+
+        $('#run').click(function() {
+            //var code = document.getElementById('code').value;
+            var code = codeEditor.getValue();
+            var html = template.replace('{{CODE}}', code);
+            sandboxRunner.executeInIframeSandbox({compiledHtml: html, resultsElement: $('#result')})
+        })
+    });
+</script>
