@@ -7,11 +7,6 @@
         <script>
 
 
-nx.onload = function() {
-    runApp();
-
-};
-
 
         </script>
         <style>
@@ -36,5 +31,16 @@ nx.onload = function() {
     <body>
 
     </body>
-    <script type="text/javascript" src="examples/stepSeq.js"></script>
 </html>
+
+<script>
+    if (window.location.search.length > 2) {
+        window.setTimeout(function() {
+            var src = window.location.search.substr(1);
+            var script = document.createElement('script');
+            script.src = '//' + window.location.host +'/' + src;
+            console.log(script.src);
+            document.body.appendChild(script);
+        }, 50);
+    }
+</script>

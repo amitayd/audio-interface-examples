@@ -24,6 +24,35 @@ var STYLE_ATTRIBUTES = {
   'height': true,
 };
 
+
+function nxColorAttribute(colorName) {
+  return {
+    getter: function (widget) {
+      return widget._nxWidget.colors[colorName];
+    },
+    setter: function (widget, value) {
+      widget._nxWidget.colors[colorName] = value;
+      widget._nxWidget.init();
+    }
+  };
+}
+
+var enabledAttribute = {
+  valueType: Boolean,
+  defaultValue: true,
+  getter: function (widget) {
+    return widget._data.enabled;
+  },
+  setter: function (widget, value) {
+    var containerElement = widget._containerElement;
+    value = !!value;
+    widget._data.enabled = value;
+    containerElement.style.pointerEvents = value ? '' : 'none';
+    // TODO: Disabled due to a problem
+    containerElement.style.opacity = value ? 1 : 1;
+  }
+};
+
 function nxAttribute(attributeName) {
   return {
     getter: function (widget) {
@@ -36,14 +65,39 @@ function nxAttribute(attributeName) {
   };
 }
 
-function dataAttribute(attributeName) {
+function nxSetter(attributeName, setFunctonName) {
+  return {
+    getter: function (widget) {
+      return widget._nxWidget[attributeName];
+    },
+    setter: function (widget, value) {
+      widget._nxWidget[setFunctonName](value);
+    }
+  };
+}
+
+function nxValue(attributeName) {
+  return {
+    getter: function (widget) {
+      return widget._nxWidget.val[attributeName];
+    },
+    setter: function (widget, value) {
+      widget._nxWidget.val[attributeName] = value;
+      widget._nxWidget.init();
+    }
+  };
+}
+
+function dataAttribute(valueType, defaultValue, attributeName) {
   return {
     getter: function (widget) {
       return widget._data[attributeName];
     },
     setter: function (widget, value) {
       widget._data[attributeName] = value;
-    }
+    },
+    defaultValue: defaultValue,
+    valueType: valueType
   };
 }
 
@@ -72,19 +126,51 @@ var WIDGET_DEFS = {
       }
     },
   },
+
+  'button': {
+    nxType: 'button',
+    events: ['onPress', 'onRelease'],
+    attributes: {},
+
+    methods: {
+      'press': {
+        func: function (widget) {
+
+          widget._nxWidget.set({
+            'press': 1
+          }, true);
+        }
+      },
+      'release': {
+        func: function (widget) {
+          widget._nxWidget.set({
+            'press': 0
+          });
+        }
+      },
+      'pressRelease': {
+        func: function (widget, time) {
+          time = time || 0.25;
+          widget.press();
+          setTimeout(_.partial(widget.release, widget), time * 1000);
+        }
+      },
+    },
+
+    nxEventRoute: function (widget, emitter, data) {
+      if (data.press === 0) {
+        emitter.emit('onRelease');
+      } else {
+        emitter.emit('onPress');
+      }
+    },
+  },
+
   'label': {
     nxType: 'comment',
     attributes: {
-      'text': {
-        getter: function (widget) {
-          return widget._nxWidget.val.text;
-        },
-        setter: function (widget, value) {
-          widget._nxWidget.val.text = value;
-          widget._nxWidget.draw();
-        }
-
-      }
+      'text': nxValue('text'),
+      'size': nxSetter('size', 'setSize')
     }
   },
 
@@ -100,25 +186,55 @@ var WIDGET_DEFS = {
 
   'metronome': {
     nxType: 'button',
-    events: ['onTick'],
+    events: ['onTick', 'onEnd'],
     attributes: {
-      interval: dataAttribute('interval'),
+      interval: dataAttribute('interval', '4n', 'interval'),
     },
     init: function (widget) {
 
-      widget.start = function () {
+      widget.start = function (options) {
+        var BUTTON_CLICK_TIME = 100;
+
+        options = options || {};
+        var ticks = options.ticks || null;
+        var wait = options.wait || 0;
+        if (widget._interval) {
+          widget.stop();
+        }
         var interval = widget.interval || '4n';
+        var tickIndex = 0;
 
-        widget._interval = Tone.Transport.setInterval(function (time) {
-          widget._emitter.emit('onTick', time);
-          widget._nxWidget.val.press = 1;
-          widget._nxWidget.draw();
-          window.setTimeout(function () {
-            widget._nxWidget.val.press = 0;
+        var scheduleTransport = function () {
+          widget._interval = Tone.Transport.setInterval(function (time) {
+
+            widget._emitter.emit('onTick', time, tickIndex);
+            tickIndex++;
+            widget._nxWidget.val.press = 1;
             widget._nxWidget.draw();
-          }, 100);
+            window.setTimeout(function () {
+              widget._nxWidget.val.press = 0;
+              widget._nxWidget.draw();
+            }, BUTTON_CLICK_TIME);
+            if (tickIndex === ticks) {
+              widget.stop();
+              widget._emitter.emit('onEnd');
+              return;
+            }
 
-        }, interval);
+
+
+          }, interval);
+        };
+
+        if (!wait) {
+          scheduleTransport();
+        } else {
+          setTimeout(scheduleTransport, wait * 1000);
+        }
+
+
+
+
       };
 
       widget.stop = function () {
@@ -127,6 +243,21 @@ var WIDGET_DEFS = {
     }
   },
 };
+
+// Extend defs with some common attributes
+Object.keys(WIDGET_DEFS).forEach(function (key) {
+  var def = WIDGET_DEFS[key];
+
+  def.attributes.enabled = enabledAttribute;
+
+  if (def.nxType) {
+    //“accent”, “fill”, “border”, “black”, and “white”)
+    ['accent', 'fill', 'border', 'black', 'white'].forEach(function(color) {
+      def.attributes[color+'Color'] = nxColorAttribute(color);
+    });
+  }
+
+});
 
 
 function createWidget(type, attributes) {
@@ -145,6 +276,7 @@ function createWidget(type, attributes) {
 
 
   var containerElement = document.createElement('div');
+  widget._containerElement = containerElement;
   containerElement.className = "widgetContainer";
   window.document.body.appendChild(containerElement);
 
@@ -172,6 +304,7 @@ function createWidget(type, attributes) {
       containerElement.style[attribute] = attributes[attribute];
     }
   });
+
 
   if (widgetDef.nxType) {
     var element = document.createElement('canvas');
@@ -207,6 +340,10 @@ function createWidget(type, attributes) {
       get: getter,
       set: setter
     });
+
+    if (attributeSettings.hasOwnProperty('defaultValue')) {
+      widget[attribute] = attributeSettings.defaultValue;
+    }
   });
 
   if (widgetDef.init) {
@@ -219,6 +356,13 @@ function createWidget(type, attributes) {
       widget[eventName] = function (listener) {
         emitter.on(eventName, listener);
       };
+    });
+  }
+
+  if (widgetDef.methods) {
+    Object.keys(widgetDef.methods).forEach(function (methodName) {
+      var functionDef = widgetDef.methods[methodName];
+      widget[methodName] = _.partial(functionDef.func, widget);
     });
   }
 

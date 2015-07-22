@@ -37,3 +37,14 @@ nx.onload = function() {
     </body>
     
 </html>
+
+<script>
+    if (window.location.search.length > 2) {
+        window.setTimeout(function() {
+            var src = window.location.search.substr(2);
+            var script = document.createElement('script');
+            script.src = window.src + src;
+            document.body.appendChild(script);
+        }, 50);
+    }
+</script>

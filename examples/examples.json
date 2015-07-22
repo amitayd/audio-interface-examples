@@ -1,4 +1,5 @@
 {
     "examples/piano.js": "Piano",
-    "examples/stepSeq.js": "Step sequencer"
+    "examples/stepSeq.js": "Step sequencer",
+    "examples/simon.js": "Simon"
 }
