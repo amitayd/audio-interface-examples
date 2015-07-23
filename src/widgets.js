@@ -127,6 +127,18 @@ var WIDGET_DEFS = {
     },
   },
 
+  'strings': {
+    nxType: 'string',
+    events: ['onPluck'],
+    attributes: {
+      'friction': nxAttribute('friction'),
+      'numberOfStrings': nxSetter('numberOfStrings', 'setStrings')
+    },
+    nxEventRoute: function (widget, emitter, data) {
+      emitter.emit('onPluck', data.string, data.x * 100);
+    }
+  },
+
   'button': {
     nxType: 'button',
     events: ['onPress', 'onRelease'],

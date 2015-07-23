@@ -7,6 +7,15 @@ function createSimpleSynth(attributes) {
   return synth;
 }
 
+function createPolySynth(attributes) {
+  var polyphony = attributes.polyphony || 4;
+  var voice = attributes.voice || Tone.PluckSynth;
+  var synth = new Tone.PolySynth (polyphony, voice);
+  synth.chain(Tone.Master);
+  return synth;
+}
+
 module.exports = {
-  createSimpleSynth: createSimpleSynth
+  createSimpleSynth: createSimpleSynth,
+  createPolySynth: createPolySynth
 };
