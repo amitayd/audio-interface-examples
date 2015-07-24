@@ -44,20 +44,20 @@
 /* 0 */
 /***/ function(module, exports, __webpack_require__) {
 
-	window.Tone = __webpack_require__(3);
+	window.Tone = __webpack_require__(4);
 
 	var widgets = __webpack_require__(1);
-	var synth = __webpack_require__(2);
-	var musical = __webpack_require__(5);
-	var nexus = __webpack_require__(4);
+	var instruments = __webpack_require__(2);
+	var musical = __webpack_require__(3);
+	var nexus = __webpack_require__(5);
 
 	// Copy all widgets functions to the global scope
 	Object.keys(widgets).forEach(function (key) {
 	  window[key] = widgets[key];
 	});
 
-	Object.keys(synth).forEach(function (key) {
-	  window[key] = synth[key];
+	Object.keys(instruments).forEach(function (key) {
+	  window[key] = instruments[key];
 	});
 
 	Object.keys(musical).forEach(function (key) {
@@ -78,9 +78,9 @@
 	"use strict";
 	/* global nx, Tone, module, require */
 
-	var musical = __webpack_require__(5);
+	var musical = __webpack_require__(3);
 	var _ = __webpack_require__(6);
-	var eventEmitter = __webpack_require__(7);
+	var eventEmitter = __webpack_require__(8);
 	var midiToNote = musical.midiToNote,
 	  noteToMidi = musical.noteToMidi;
 
@@ -492,6 +492,18 @@
 	  return synth;
 	}
 
+	function createPlayer(sample, attributes) {
+	  var player = new Tone.Player(sample);
+	  player.chain(Tone.Master);
+	  return player;
+	}
+
+	function createSampler(samples, attributes) {
+	  var sampler = new Tone.Sampler(samples);
+	  sampler.chain(Tone.Master);
+	  return sampler;
+	}
+
 	function createPolySynth(attributes) {
 	  var polyphony = attributes.polyphony || 4;
 	  var voice = attributes.voice || Tone.PluckSynth;
@@ -502,11 +514,46 @@
 
 	module.exports = {
 	  createSimpleSynth: createSimpleSynth,
-	  createPolySynth: createPolySynth
+	  createPolySynth: createPolySynth,
+	  createPlayer: createPlayer,
+	  createSampler: createSampler
 	};
 
 /***/ },
 /* 3 */
+/***/ function(module, exports, __webpack_require__) {
+
+	"use strict";
+	/* global module, Tone, require */
+
+	var teoria = __webpack_require__(7);
+
+	var tone = new Tone();
+
+	function scientific(note) {
+	  return note.scientific();
+	}
+
+	function fq(note) {
+	  return note.fq();
+	}
+
+	module.exports = {
+	  midiToNote: tone.midiToNote.bind(tone),
+	  noteToMidi: tone.noteToMidi.bind(tone),
+	  getChordNotes: function(note, chord) {
+	    chord = chord || 'major';
+	    return teoria.note(note).chord(chord).notes().map(fq);
+	  },
+	  getNoteScale: function(note, scale) {
+	    scale = scale || 'major';
+	    return teoria.note(note).scale(scale).notes().map(scientific);
+	  },
+	  teoria: teoria
+	};
+
+/***/ },
+/* 4 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;(function (root) {
@@ -15206,7 +15253,7 @@
 	} (this));
 
 /***/ },
-/* 4 */
+/* 5 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var require;var require;/* WEBPACK VAR INJECTION */(function(global) {(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return require(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
@@ -22439,39 +22486,6 @@
 	},{}]},{},[1]);
 	
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
-
-/***/ },
-/* 5 */
-/***/ function(module, exports, __webpack_require__) {
-
-	"use strict";
-	/* global module, Tone, require */
-
-	var teoria = __webpack_require__(23);
-
-	var tone = new Tone();
-
-	function scientific(note) {
-	  return note.scientific();
-	}
-
-	function fq(note) {
-	  return note.fq();
-	}
-
-	module.exports = {
-	  midiToNote: tone.midiToNote.bind(tone),
-	  noteToMidi: tone.noteToMidi.bind(tone),
-	  getChordNotes: function(note, chord) {
-	    chord = chord || 'major';
-	    return teoria.note(note).chord(chord).notes().map(fq);
-	  },
-	  getNoteScale: function(note, scale) {
-	    scale = scale || 'major';
-	    return teoria.note(note).scale(scale).notes().map(scientific);
-	  },
-	  teoria: teoria
-	};
 
 /***/ },
 /* 6 */
@@ -34829,16 +34843,99 @@
 	  }
 	}.call(this));
 	
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(8)(module), (function() { return this; }())))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(17)(module), (function() { return this; }())))
 
 /***/ },
 /* 7 */
 /***/ function(module, exports, __webpack_require__) {
 
+	var Note = __webpack_require__(9);
+	var Interval = __webpack_require__(10);
+	var Chord = __webpack_require__(11);
+	var Scale = __webpack_require__(12);
+
+	// never thought I would write this, but: Legacy support
+	function intervalConstructor(from, to) {
+	  // Construct a Interval object from string representation
+	  if (typeof from === 'string')
+	    return Interval.toCoord(from);
+
+	  if (typeof to === 'string' && from instanceof Note)
+	    return Interval.from(from, Interval.toCoord(to));
+
+	  if (to instanceof Interval && from instanceof Note)
+	    return Interval.from(from, to);
+
+	  if (to instanceof Note && from instanceof Note)
+	    return Interval.between(from, to);
+
+	  throw new Error('Invalid parameters');
+	}
+
+	intervalConstructor.toCoord = Interval.toCoord;
+	intervalConstructor.from = Interval.from;
+	intervalConstructor.between = Interval.between;
+	intervalConstructor.invert = Interval.invert;
+
+	function noteConstructor(name, duration) {
+	  if (typeof name === 'string')
+	    return Note.fromString(name, duration);
+	  else
+	    return new Note(name, duration);
+	}
+
+	noteConstructor.fromString = Note.fromString;
+	noteConstructor.fromKey = Note.fromKey;
+	noteConstructor.fromFrequency = Note.fromFrequency;
+	noteConstructor.fromMIDI = Note.fromMIDI;
+
+	function chordConstructor(name, symbol) {
+	  if (typeof name === 'string') {
+	    var root, octave;
+	    root = name.match(/^([a-h])(x|#|bb|b?)/i);
+	    if (root && root[0]) {
+	      octave = typeof symbol === 'number' ? symbol.toString(10) : '4';
+	      return new Chord(Note.fromString(root[0].toLowerCase() + octave),
+	                            name.substr(root[0].length));
+	    }
+	  } else if (name instanceof Note)
+	    return new Chord(name, symbol);
+
+	  throw new Error('Invalid Chord. Couldn\'t find note name');
+	}
+
+	function scaleConstructor(tonic, scale) {
+	  tonic = (tonic instanceof Note) ? tonic : teoria.note(tonic);
+	  return new Scale(tonic, scale);
+	}
+
+	var teoria = {
+	  note: noteConstructor,
+
+	  chord: chordConstructor,
+
+	  interval: intervalConstructor,
+
+	  scale: scaleConstructor,
+
+	  Note: Note,
+	  Chord: Chord,
+	  Scale: Scale,
+	  Interval: Interval
+	};
+
+	__webpack_require__(13)(teoria);
+	exports = module.exports = teoria;
+
+
+/***/ },
+/* 8 */
+/***/ function(module, exports, __webpack_require__) {
+
 	'use strict';
 
-	var d        = __webpack_require__(9)
-	  , callable = __webpack_require__(10)
+	var d        = __webpack_require__(14)
+	  , callable = __webpack_require__(18)
 
 	  , apply = Function.prototype.apply, call = Function.prototype.call
 	  , create = Object.create, defineProperty = Object.defineProperty
@@ -34970,370 +35067,14 @@
 
 
 /***/ },
-/* 8 */
-/***/ function(module, exports, __webpack_require__) {
-
-	module.exports = function(module) {
-		if(!module.webpackPolyfill) {
-			module.deprecate = function() {};
-			module.paths = [];
-			// module.parent = undefined by default
-			module.children = [];
-			module.webpackPolyfill = 1;
-		}
-		return module;
-	}
-
-
-/***/ },
 /* 9 */
 /***/ function(module, exports, __webpack_require__) {
 
-	'use strict';
-
-	var assign        = __webpack_require__(13)
-	  , normalizeOpts = __webpack_require__(11)
-	  , isCallable    = __webpack_require__(12)
-	  , contains      = __webpack_require__(14)
-
-	  , d;
-
-	d = module.exports = function (dscr, value/*, options*/) {
-		var c, e, w, options, desc;
-		if ((arguments.length < 2) || (typeof dscr !== 'string')) {
-			options = value;
-			value = dscr;
-			dscr = null;
-		} else {
-			options = arguments[2];
-		}
-		if (dscr == null) {
-			c = w = true;
-			e = false;
-		} else {
-			c = contains.call(dscr, 'c');
-			e = contains.call(dscr, 'e');
-			w = contains.call(dscr, 'w');
-		}
-
-		desc = { value: value, configurable: c, enumerable: e, writable: w };
-		return !options ? desc : assign(normalizeOpts(options), desc);
-	};
-
-	d.gs = function (dscr, get, set/*, options*/) {
-		var c, e, options, desc;
-		if (typeof dscr !== 'string') {
-			options = set;
-			set = get;
-			get = dscr;
-			dscr = null;
-		} else {
-			options = arguments[3];
-		}
-		if (get == null) {
-			get = undefined;
-		} else if (!isCallable(get)) {
-			options = get;
-			get = set = undefined;
-		} else if (set == null) {
-			set = undefined;
-		} else if (!isCallable(set)) {
-			options = set;
-			set = undefined;
-		}
-		if (dscr == null) {
-			c = true;
-			e = false;
-		} else {
-			c = contains.call(dscr, 'c');
-			e = contains.call(dscr, 'e');
-		}
-
-		desc = { get: get, set: set, configurable: c, enumerable: e };
-		return !options ? desc : assign(normalizeOpts(options), desc);
-	};
-
-
-/***/ },
-/* 10 */
-/***/ function(module, exports, __webpack_require__) {
-
-	'use strict';
-
-	module.exports = function (fn) {
-		if (typeof fn !== 'function') throw new TypeError(fn + " is not a function");
-		return fn;
-	};
-
-
-/***/ },
-/* 11 */
-/***/ function(module, exports, __webpack_require__) {
-
-	'use strict';
-
-	var forEach = Array.prototype.forEach, create = Object.create;
-
-	var process = function (src, obj) {
-		var key;
-		for (key in src) obj[key] = src[key];
-	};
-
-	module.exports = function (options/*, …options*/) {
-		var result = create(null);
-		forEach.call(arguments, function (options) {
-			if (options == null) return;
-			process(Object(options), result);
-		});
-		return result;
-	};
-
-
-/***/ },
-/* 12 */
-/***/ function(module, exports, __webpack_require__) {
-
-	// Deprecated
-
-	'use strict';
-
-	module.exports = function (obj) { return typeof obj === 'function'; };
-
-
-/***/ },
-/* 13 */
-/***/ function(module, exports, __webpack_require__) {
-
-	'use strict';
-
-	module.exports = __webpack_require__(15)()
-		? Object.assign
-		: __webpack_require__(16);
-
-
-/***/ },
-/* 14 */
-/***/ function(module, exports, __webpack_require__) {
-
-	'use strict';
-
-	module.exports = __webpack_require__(17)()
-		? String.prototype.contains
-		: __webpack_require__(18);
-
-
-/***/ },
-/* 15 */
-/***/ function(module, exports, __webpack_require__) {
-
-	'use strict';
-
-	module.exports = function () {
-		var assign = Object.assign, obj;
-		if (typeof assign !== 'function') return false;
-		obj = { foo: 'raz' };
-		assign(obj, { bar: 'dwa' }, { trzy: 'trzy' });
-		return (obj.foo + obj.bar + obj.trzy) === 'razdwatrzy';
-	};
-
-
-/***/ },
-/* 16 */
-/***/ function(module, exports, __webpack_require__) {
-
-	'use strict';
-
-	var keys  = __webpack_require__(20)
-	  , value = __webpack_require__(19)
-
-	  , max = Math.max;
-
-	module.exports = function (dest, src/*, …srcn*/) {
-		var error, i, l = max(arguments.length, 2), assign;
-		dest = Object(value(dest));
-		assign = function (key) {
-			try { dest[key] = src[key]; } catch (e) {
-				if (!error) error = e;
-			}
-		};
-		for (i = 1; i < l; ++i) {
-			src = arguments[i];
-			keys(src).forEach(assign);
-		}
-		if (error !== undefined) throw error;
-		return dest;
-	};
-
-
-/***/ },
-/* 17 */
-/***/ function(module, exports, __webpack_require__) {
-
-	'use strict';
-
-	var str = 'razdwatrzy';
-
-	module.exports = function () {
-		if (typeof str.contains !== 'function') return false;
-		return ((str.contains('dwa') === true) && (str.contains('foo') === false));
-	};
-
-
-/***/ },
-/* 18 */
-/***/ function(module, exports, __webpack_require__) {
-
-	'use strict';
-
-	var indexOf = String.prototype.indexOf;
-
-	module.exports = function (searchString/*, position*/) {
-		return indexOf.call(this, searchString, arguments[1]) > -1;
-	};
-
-
-/***/ },
-/* 19 */
-/***/ function(module, exports, __webpack_require__) {
-
-	'use strict';
-
-	module.exports = function (value) {
-		if (value == null) throw new TypeError("Cannot use null or undefined");
-		return value;
-	};
-
-
-/***/ },
-/* 20 */
-/***/ function(module, exports, __webpack_require__) {
-
-	'use strict';
-
-	module.exports = __webpack_require__(21)()
-		? Object.keys
-		: __webpack_require__(22);
-
-
-/***/ },
-/* 21 */
-/***/ function(module, exports, __webpack_require__) {
-
-	'use strict';
-
-	module.exports = function () {
-		try {
-			Object.keys('primitive');
-			return true;
-		} catch (e) { return false; }
-	};
-
-
-/***/ },
-/* 22 */
-/***/ function(module, exports, __webpack_require__) {
-
-	'use strict';
-
-	var keys = Object.keys;
-
-	module.exports = function (object) {
-		return keys(object == null ? object : Object(object));
-	};
-
-
-/***/ },
-/* 23 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var Note = __webpack_require__(24);
-	var Interval = __webpack_require__(25);
-	var Chord = __webpack_require__(26);
-	var Scale = __webpack_require__(27);
-
-	// never thought I would write this, but: Legacy support
-	function intervalConstructor(from, to) {
-	  // Construct a Interval object from string representation
-	  if (typeof from === 'string')
-	    return Interval.toCoord(from);
-
-	  if (typeof to === 'string' && from instanceof Note)
-	    return Interval.from(from, Interval.toCoord(to));
-
-	  if (to instanceof Interval && from instanceof Note)
-	    return Interval.from(from, to);
-
-	  if (to instanceof Note && from instanceof Note)
-	    return Interval.between(from, to);
-
-	  throw new Error('Invalid parameters');
-	}
-
-	intervalConstructor.toCoord = Interval.toCoord;
-	intervalConstructor.from = Interval.from;
-	intervalConstructor.between = Interval.between;
-	intervalConstructor.invert = Interval.invert;
-
-	function noteConstructor(name, duration) {
-	  if (typeof name === 'string')
-	    return Note.fromString(name, duration);
-	  else
-	    return new Note(name, duration);
-	}
-
-	noteConstructor.fromString = Note.fromString;
-	noteConstructor.fromKey = Note.fromKey;
-	noteConstructor.fromFrequency = Note.fromFrequency;
-	noteConstructor.fromMIDI = Note.fromMIDI;
-
-	function chordConstructor(name, symbol) {
-	  if (typeof name === 'string') {
-	    var root, octave;
-	    root = name.match(/^([a-h])(x|#|bb|b?)/i);
-	    if (root && root[0]) {
-	      octave = typeof symbol === 'number' ? symbol.toString(10) : '4';
-	      return new Chord(Note.fromString(root[0].toLowerCase() + octave),
-	                            name.substr(root[0].length));
-	    }
-	  } else if (name instanceof Note)
-	    return new Chord(name, symbol);
-
-	  throw new Error('Invalid Chord. Couldn\'t find note name');
-	}
-
-	function scaleConstructor(tonic, scale) {
-	  tonic = (tonic instanceof Note) ? tonic : teoria.note(tonic);
-	  return new Scale(tonic, scale);
-	}
-
-	var teoria = {
-	  note: noteConstructor,
-
-	  chord: chordConstructor,
-
-	  interval: intervalConstructor,
-
-	  scale: scaleConstructor,
-
-	  Note: Note,
-	  Chord: Chord,
-	  Scale: Scale,
-	  Interval: Interval
-	};
-
-	__webpack_require__(28)(teoria);
-	exports = module.exports = teoria;
-
-
-/***/ },
-/* 24 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var scientific = __webpack_require__(31);
-	var helmholtz = __webpack_require__(32);
-	var knowledge = __webpack_require__(29);
-	var vector = __webpack_require__(30);
-	var Interval = __webpack_require__(25);
+	var scientific = __webpack_require__(21);
+	var helmholtz = __webpack_require__(22);
+	var knowledge = __webpack_require__(15);
+	var vector = __webpack_require__(16);
+	var Interval = __webpack_require__(10);
 
 	function pad(str, ch, len) {
 	  for (; len > 0; len--) {
@@ -35555,12 +35296,12 @@
 
 
 /***/ },
-/* 25 */
+/* 10 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var knowledge = __webpack_require__(29);
-	var vector = __webpack_require__(30);
-	var toCoord = __webpack_require__(33);
+	var knowledge = __webpack_require__(15);
+	var vector = __webpack_require__(16);
+	var toCoord = __webpack_require__(23);
 
 	function Interval(coord) {
 	  if (!(this instanceof Interval)) return new Interval(coord);
@@ -35727,13 +35468,13 @@
 
 
 /***/ },
-/* 26 */
+/* 11 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var daccord = __webpack_require__(34);
-	var knowledge = __webpack_require__(29);
-	var Note = __webpack_require__(24);
-	var Interval = __webpack_require__(25);
+	var daccord = __webpack_require__(24);
+	var knowledge = __webpack_require__(15);
+	var Note = __webpack_require__(9);
+	var Interval = __webpack_require__(10);
 
 	function Chord(root, name) {
 	  if (!(this instanceof Chord)) return new Chord(root, name);
@@ -35954,11 +35695,11 @@
 
 
 /***/ },
-/* 27 */
+/* 12 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var knowledge = __webpack_require__(29);
-	var Interval = __webpack_require__(25);
+	var knowledge = __webpack_require__(15);
+	var Interval = __webpack_require__(10);
 
 	var scales = {
 	  aeolian: ['P1', 'M2', 'm3', 'P4', 'P5', 'm6', 'm7'],
@@ -36068,10 +35809,10 @@
 
 
 /***/ },
-/* 28 */
+/* 13 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var knowledge = __webpack_require__(29);
+	var knowledge = __webpack_require__(15);
 
 	module.exports = function(teoria) {
 	  var Note = teoria.Note;
@@ -36091,7 +35832,76 @@
 
 
 /***/ },
-/* 29 */
+/* 14 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	var assign        = __webpack_require__(25)
+	  , normalizeOpts = __webpack_require__(19)
+	  , isCallable    = __webpack_require__(20)
+	  , contains      = __webpack_require__(26)
+
+	  , d;
+
+	d = module.exports = function (dscr, value/*, options*/) {
+		var c, e, w, options, desc;
+		if ((arguments.length < 2) || (typeof dscr !== 'string')) {
+			options = value;
+			value = dscr;
+			dscr = null;
+		} else {
+			options = arguments[2];
+		}
+		if (dscr == null) {
+			c = w = true;
+			e = false;
+		} else {
+			c = contains.call(dscr, 'c');
+			e = contains.call(dscr, 'e');
+			w = contains.call(dscr, 'w');
+		}
+
+		desc = { value: value, configurable: c, enumerable: e, writable: w };
+		return !options ? desc : assign(normalizeOpts(options), desc);
+	};
+
+	d.gs = function (dscr, get, set/*, options*/) {
+		var c, e, options, desc;
+		if (typeof dscr !== 'string') {
+			options = set;
+			set = get;
+			get = dscr;
+			dscr = null;
+		} else {
+			options = arguments[3];
+		}
+		if (get == null) {
+			get = undefined;
+		} else if (!isCallable(get)) {
+			options = get;
+			get = set = undefined;
+		} else if (set == null) {
+			set = undefined;
+		} else if (!isCallable(set)) {
+			options = set;
+			set = undefined;
+		}
+		if (dscr == null) {
+			c = true;
+			e = false;
+		} else {
+			c = contains.call(dscr, 'c');
+			e = contains.call(dscr, 'e');
+		}
+
+		desc = { get: get, set: set, configurable: c, enumerable: e };
+		return !options ? desc : assign(normalizeOpts(options), desc);
+	};
+
+
+/***/ },
+/* 15 */
 /***/ function(module, exports, __webpack_require__) {
 
 	// Note coordinates [octave, fifth] relative to C
@@ -36259,7 +36069,7 @@
 
 
 /***/ },
-/* 30 */
+/* 16 */
 /***/ function(module, exports, __webpack_require__) {
 
 	module.exports = {
@@ -36285,11 +36095,73 @@
 
 
 /***/ },
-/* 31 */
+/* 17 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var coords = __webpack_require__(35);
-	var accval = __webpack_require__(36);
+	module.exports = function(module) {
+		if(!module.webpackPolyfill) {
+			module.deprecate = function() {};
+			module.paths = [];
+			// module.parent = undefined by default
+			module.children = [];
+			module.webpackPolyfill = 1;
+		}
+		return module;
+	}
+
+
+/***/ },
+/* 18 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	module.exports = function (fn) {
+		if (typeof fn !== 'function') throw new TypeError(fn + " is not a function");
+		return fn;
+	};
+
+
+/***/ },
+/* 19 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	var forEach = Array.prototype.forEach, create = Object.create;
+
+	var process = function (src, obj) {
+		var key;
+		for (key in src) obj[key] = src[key];
+	};
+
+	module.exports = function (options/*, …options*/) {
+		var result = create(null);
+		forEach.call(arguments, function (options) {
+			if (options == null) return;
+			process(Object(options), result);
+		});
+		return result;
+	};
+
+
+/***/ },
+/* 20 */
+/***/ function(module, exports, __webpack_require__) {
+
+	// Deprecated
+
+	'use strict';
+
+	module.exports = function (obj) { return typeof obj === 'function'; };
+
+
+/***/ },
+/* 21 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var coords = __webpack_require__(32);
+	var accval = __webpack_require__(31);
 
 	module.exports = function scientific(name) {
 	  var format = /^([a-h])(x|#|bb|b?)(-?\d*)/i;
@@ -36313,11 +36185,11 @@
 
 
 /***/ },
-/* 32 */
+/* 22 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var coords = __webpack_require__(37);
-	var accval = __webpack_require__(38);
+	var coords = __webpack_require__(33);
+	var accval = __webpack_require__(34);
 
 	module.exports = function helmholtz(name) {
 	  var name = name.replace(/\u2032/g, "'").replace(/\u0375/g, ',');
@@ -36360,7 +36232,7 @@
 
 
 /***/ },
-/* 33 */
+/* 23 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var pattern = /^(AA|A|P|M|m|d|dd)(-?\d+)$/;
@@ -36414,7 +36286,7 @@
 
 
 /***/ },
-/* 34 */
+/* 24 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var SYMBOLS = {
@@ -36608,7 +36480,121 @@
 
 
 /***/ },
-/* 35 */
+/* 25 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	module.exports = __webpack_require__(27)()
+		? Object.assign
+		: __webpack_require__(28);
+
+
+/***/ },
+/* 26 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	module.exports = __webpack_require__(29)()
+		? String.prototype.contains
+		: __webpack_require__(30);
+
+
+/***/ },
+/* 27 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	module.exports = function () {
+		var assign = Object.assign, obj;
+		if (typeof assign !== 'function') return false;
+		obj = { foo: 'raz' };
+		assign(obj, { bar: 'dwa' }, { trzy: 'trzy' });
+		return (obj.foo + obj.bar + obj.trzy) === 'razdwatrzy';
+	};
+
+
+/***/ },
+/* 28 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	var keys  = __webpack_require__(36)
+	  , value = __webpack_require__(35)
+
+	  , max = Math.max;
+
+	module.exports = function (dest, src/*, …srcn*/) {
+		var error, i, l = max(arguments.length, 2), assign;
+		dest = Object(value(dest));
+		assign = function (key) {
+			try { dest[key] = src[key]; } catch (e) {
+				if (!error) error = e;
+			}
+		};
+		for (i = 1; i < l; ++i) {
+			src = arguments[i];
+			keys(src).forEach(assign);
+		}
+		if (error !== undefined) throw error;
+		return dest;
+	};
+
+
+/***/ },
+/* 29 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	var str = 'razdwatrzy';
+
+	module.exports = function () {
+		if (typeof str.contains !== 'function') return false;
+		return ((str.contains('dwa') === true) && (str.contains('foo') === false));
+	};
+
+
+/***/ },
+/* 30 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	var indexOf = String.prototype.indexOf;
+
+	module.exports = function (searchString/*, position*/) {
+		return indexOf.call(this, searchString, arguments[1]) > -1;
+	};
+
+
+/***/ },
+/* 31 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var accidentalValues = {
+	  'bb': -2,
+	  'b': -1,
+	  '': 0,
+	  '#': 1,
+	  'x': 2
+	};
+
+	module.exports = function accidentalNumber(acc) {
+	  return accidentalValues[acc];
+	}
+
+	module.exports.interval = function accidentalInterval(acc) {
+	  var val = accidentalValues[acc];
+	  return [-4 * val, 7 * val];
+	}
+
+
+/***/ },
+/* 32 */
 /***/ function(module, exports, __webpack_require__) {
 
 	// First coord is octaves, second is fifths. Distances are relative to c
@@ -36630,75 +36616,103 @@
 	module.exports.notes = notes;
 	module.exports.A4 = [3, 3]; // Relative to C0 (scientic notation, ~16.35Hz)
 	module.exports.sharp = [-4, 7];
+
+
+/***/ },
+/* 33 */
+/***/ function(module, exports, __webpack_require__) {
+
+	// First coord is octaves, second is fifths. Distances are relative to c
+	var notes = {
+	  c: [0, 0],
+	  d: [-1, 2],
+	  e: [-2, 4],
+	  f: [1, -1],
+	  g: [0, 1],
+	  a: [-1, 3],
+	  b: [-2, 5],
+	  h: [-2, 5]
+	};
+
+	module.exports = function(name) {
+	  return name in notes ? [notes[name][0], notes[name][1]] : null;
+	};
+
+	module.exports.notes = notes;
+	module.exports.A4 = [3, 3]; // Relative to C0 (scientic notation, ~16.35Hz)
+	module.exports.sharp = [-4, 7];
+
+
+/***/ },
+/* 34 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var accidentalValues = {
+	  'bb': -2,
+	  'b': -1,
+	  '': 0,
+	  '#': 1,
+	  'x': 2
+	};
+
+	module.exports = function accidentalNumber(acc) {
+	  return accidentalValues[acc];
+	}
+
+	module.exports.interval = function accidentalInterval(acc) {
+	  var val = accidentalValues[acc];
+	  return [-4 * val, 7 * val];
+	}
+
+
+/***/ },
+/* 35 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	module.exports = function (value) {
+		if (value == null) throw new TypeError("Cannot use null or undefined");
+		return value;
+	};
 
 
 /***/ },
 /* 36 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var accidentalValues = {
-	  'bb': -2,
-	  'b': -1,
-	  '': 0,
-	  '#': 1,
-	  'x': 2
-	};
+	'use strict';
 
-	module.exports = function accidentalNumber(acc) {
-	  return accidentalValues[acc];
-	}
-
-	module.exports.interval = function accidentalInterval(acc) {
-	  var val = accidentalValues[acc];
-	  return [-4 * val, 7 * val];
-	}
+	module.exports = __webpack_require__(37)()
+		? Object.keys
+		: __webpack_require__(38);
 
 
 /***/ },
 /* 37 */
 /***/ function(module, exports, __webpack_require__) {
 
-	// First coord is octaves, second is fifths. Distances are relative to c
-	var notes = {
-	  c: [0, 0],
-	  d: [-1, 2],
-	  e: [-2, 4],
-	  f: [1, -1],
-	  g: [0, 1],
-	  a: [-1, 3],
-	  b: [-2, 5],
-	  h: [-2, 5]
-	};
+	'use strict';
 
-	module.exports = function(name) {
-	  return name in notes ? [notes[name][0], notes[name][1]] : null;
+	module.exports = function () {
+		try {
+			Object.keys('primitive');
+			return true;
+		} catch (e) { return false; }
 	};
-
-	module.exports.notes = notes;
-	module.exports.A4 = [3, 3]; // Relative to C0 (scientic notation, ~16.35Hz)
-	module.exports.sharp = [-4, 7];
 
 
 /***/ },
 /* 38 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var accidentalValues = {
-	  'bb': -2,
-	  'b': -1,
-	  '': 0,
-	  '#': 1,
-	  'x': 2
+	'use strict';
+
+	var keys = Object.keys;
+
+	module.exports = function (object) {
+		return keys(object == null ? object : Object(object));
 	};
-
-	module.exports = function accidentalNumber(acc) {
-	  return accidentalValues[acc];
-	}
-
-	module.exports.interval = function accidentalInterval(acc) {
-	  var val = accidentalValues[acc];
-	  return [-4 * val, 7 * val];
-	}
 
 
 /***/ }

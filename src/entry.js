@@ -1,7 +1,7 @@
 window.Tone = require('../vendor/Tone.js');
 
 var widgets = require('./widgets');
-var synth = require('./synth');
+var instruments = require('./instruments');
 var musical = require('./musical');
 var nexus = require('../vendor/NexusUI/nexusUI.js');
 
@@ -10,8 +10,8 @@ Object.keys(widgets).forEach(function (key) {
   window[key] = widgets[key];
 });
 
-Object.keys(synth).forEach(function (key) {
-  window[key] = synth[key];
+Object.keys(instruments).forEach(function (key) {
+  window[key] = instruments[key];
 });
 
 Object.keys(musical).forEach(function (key) {

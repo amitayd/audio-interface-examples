@@ -7,6 +7,18 @@ function createSimpleSynth(attributes) {
   return synth;
 }
 
+function createPlayer(sample, attributes) {
+  var player = new Tone.Player(sample);
+  player.chain(Tone.Master);
+  return player;
+}
+
+function createSampler(samples, attributes) {
+  var sampler = new Tone.Sampler(samples);
+  sampler.chain(Tone.Master);
+  return sampler;
+}
+
 function createPolySynth(attributes) {
   var polyphony = attributes.polyphony || 4;
   var voice = attributes.voice || Tone.PluckSynth;
@@ -17,5 +29,7 @@ function createPolySynth(attributes) {
 
 module.exports = {
   createSimpleSynth: createSimpleSynth,
-  createPolySynth: createPolySynth
+  createPolySynth: createPolySynth,
+  createPlayer: createPlayer,
+  createSampler: createSampler
 };

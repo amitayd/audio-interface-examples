@@ -2,5 +2,6 @@
     "examples/piano.js": "Piano",
     "examples/stepSeq.js": "Step sequencer",
     "examples/simon.js": "Simon",
-    "examples/guitar.js": "Guitar"
+    "examples/guitar.js": "Guitar",
+    "examples/player.js": "Player and sampler"
 }
