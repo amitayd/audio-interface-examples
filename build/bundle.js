@@ -444,6 +444,60 @@
 	    }
 	  },
 
+	  'joints': {
+	    nxType: 'joints',
+	    events: ['onChange'],
+	    attributes: {
+	      x: nxValue('x'),
+	      y: nxValue('y'),
+	      minDistance: nxAttribute('threshold'),
+	      joints: nxAttribute('joints'),
+	      // joints: {
+	      //   getter: function (widget) {
+	      //     return widget._data.joints;
+	      //   },
+	      //   setter: function (widget, value) {
+	      //     widget._data.joints = value;
+	      //     var absoluteJoints = _.map(value, function (joint) {
+	      //       return {
+	      //         x: widget._nxWidget.width * joint.x,
+	      //         y: widget._nxWidget.height * joint.y
+	      //       };
+	      //     });
+
+	      //     widget._nxWidget.joints = absoluteJoints;
+	      //     widget._nxWidget.init();
+	      //   },
+	      // },
+	      // minDistance: {
+	      //   getter: function (widget) {
+	      //     return widget._data.minDistance;
+	      //   },
+	      //   setter: function (widget, value) {
+	      //     widget._data.minDistance = value;
+	      //     widget._nxWidget.threshold = value * widget._nxWidget.width;
+	      //     widget._nxWidget.init();
+	      //   },
+	      //}
+	    },
+	    nxEventRoute: function (widget, emitter, data) {
+	      console.log(data);
+	      emitter.emit('onChange', data.speed);
+	    },
+	    init: function (widget) {
+	      window.addEventListener('resize', function () {
+	        // Hack to recalculate absolute joint position after window resize, 
+	        // and after the nx widget changes size.
+	        setTimeout(function () {
+	          console.log('calculating joints');
+	          //widget.joints = widget.joints;
+	          //widget.joints = widget.minDistance;
+	        }, 0);
+
+	      });
+	    }
+	  },
+
 	  'metronome': {
 	    nxType: 'button',
 	    events: ['onTick', 'onEnd'],
@@ -18287,28 +18341,31 @@
 			node1: 0
 		}
 		/** @property {array} joints An array of objects with x and y properties detailing coordinates of each proximity node.
+			x and y are expressed relatively, 0.0 for top or left corner, 1.0 for bottom or right.
 		```js
 			// The widget will now have only 2 proximity points, instead of 8
 			joints1.joints = [
-			&nbsp; { x: 20 , y: 100 },
-			&nbsp; { x: 75 , y: 150 }
+			&nbsp; { x: 0.2 , y: 0.65 },
+			&nbsp; { x: 0.8 , y: 0.25 }
 			]
 		```
 		 */
 		this.joints = [
-			{ x: this.width/1.2 , y: this.height/1.2 },
-			{ x: this.width/2 , y: this.height/1.3 },
-			{ x: this.width/4.2 , y: this.height/1.1 },
+			{ x: 1/1.2 , y: 1/1.2 },
+			{ x: 1/2 , y: 1/1.3 },
+			{ x: 1/4.2 , y: 1/1.1 },
 			
-			{ x: this.width/1.4 , y: this.height/2.2 },
-			{ x: this.width/2.1 , y: this.height/1.8 },
-			{ x: this.width/5 , y: this.height/2.4 },
+			{ x: 1/1.4 , y: 1/2.2 },
+			{ x: 1/2.1 , y: 1/1.8 },
+			{ x: 1/5 , y: 1/2.4 },
 			
-			{ x: this.width/2.8 , y: this.height/6 },
-			{ x: this.width/6 , y: this.height/3.7 }
+			{ x: 1/2.8 , y: 1/6 },
+			{ x: 1/6 , y: 1/3.7 }
 		
 		]
-		this.threshold = this.width / 3;
+			/** @property {float} the minimum relative distance from x,y 
+		 */
+		this.threshold = Math.pow(0.3, 2);
 	}
 	util.inherits(joints, widget);
 
@@ -18336,16 +18393,18 @@
 			fillStyle = this.colors.accent;
 			strokeStyle = this.colors.border;
 			for (var i in this.joints) {
+				var drawJointX = this.joints[i].x * this.width;
+				var drawJointY = this.joints[i].y * this.height;
 				beginPath();
-					arc(this.joints[i].x, this.joints[i].y, this.nodeSize/2, 0, Math.PI*2, true);					
+					arc(drawJointX, drawJointY, this.nodeSize/2, 0, Math.PI*2, true);
 					fill();
 				closePath();
-				var cnctX = Math.abs(this.joints[i].x-this.drawingX);
-				var cnctY = Math.abs(this.joints[i].y-this.drawingY);
-				var strength = cnctX + cnctY;
+				var cnctX = Math.abs(this.joints[i].x-this.val.x);
+				var cnctY = Math.abs(this.joints[i].y-this.val.y);
+				var strength = Math.pow(cnctX, 2) + Math.pow(cnctY, 2);
 				if (strength < this.threshold) {
 					beginPath();
-						moveTo(this.joints[i].x, this.joints[i].y);
+						moveTo(drawJointX, drawJointY);
 						lineTo(this.drawingX,this.drawingY);
 						strokeStyle = this.colors.accent;
 						lineWidth = math.scale( strength, 0, this.threshold, this.nodeSize/2, 5 );

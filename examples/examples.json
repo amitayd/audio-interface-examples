@@ -7,6 +7,7 @@
     "examples/dials.js": "Dials and sliders",
     "examples/multitouch.js": "Multitouch",
     "examples/typewritterVinylToggle.js": "typewritter, Vinyl, Toggle",
-    "examples/range.js": "Range, tilt, Number"
+    "examples/range.js": "Range, tilt, Number",
+    "examples/joints.js": "Joints"
 
 }

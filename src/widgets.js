@@ -367,6 +367,60 @@ var WIDGET_DEFS = {
     }
   },
 
+  'joints': {
+    nxType: 'joints',
+    events: ['onChange'],
+    attributes: {
+      x: nxValue('x'),
+      y: nxValue('y'),
+      minDistance: nxAttribute('threshold'),
+      joints: nxAttribute('joints'),
+      // joints: {
+      //   getter: function (widget) {
+      //     return widget._data.joints;
+      //   },
+      //   setter: function (widget, value) {
+      //     widget._data.joints = value;
+      //     var absoluteJoints = _.map(value, function (joint) {
+      //       return {
+      //         x: widget._nxWidget.width * joint.x,
+      //         y: widget._nxWidget.height * joint.y
+      //       };
+      //     });
+
+      //     widget._nxWidget.joints = absoluteJoints;
+      //     widget._nxWidget.init();
+      //   },
+      // },
+      // minDistance: {
+      //   getter: function (widget) {
+      //     return widget._data.minDistance;
+      //   },
+      //   setter: function (widget, value) {
+      //     widget._data.minDistance = value;
+      //     widget._nxWidget.threshold = value * widget._nxWidget.width;
+      //     widget._nxWidget.init();
+      //   },
+      //}
+    },
+    nxEventRoute: function (widget, emitter, data) {
+      console.log(data);
+      emitter.emit('onChange', data.speed);
+    },
+    init: function (widget) {
+      window.addEventListener('resize', function () {
+        // Hack to recalculate absolute joint position after window resize, 
+        // and after the nx widget changes size.
+        setTimeout(function () {
+          console.log('calculating joints');
+          //widget.joints = widget.joints;
+          //widget.joints = widget.minDistance;
+        }, 0);
+
+      });
+    }
+  },
+
   'metronome': {
     nxType: 'button',
     events: ['onTick', 'onEnd'],
