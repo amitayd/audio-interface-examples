@@ -5,7 +5,7 @@ button1 = createWidget('button', {
   left: '0%'
 });
 
-button2 = createWidget('button', {
+position1 = createWidget('position', {
   width: '20%',
   height: '30%',
   top: '50%',
@@ -51,8 +51,13 @@ Tone.Buffer.onload = function() {
     player.start();
   });
 
-  button2.onPress(function() {
-    sampler.triggerAttack('kick');
+  position1.onPress(function(x, y) {
+    sampler.pitch = y * 10;
+    sampler.triggerAttack('cymbal');
+  });
+
+  position1.onMove(function(x, y) {
+    sampler.pitch = y * 10;
   });
 
   button3.onPress(function() {
@@ -60,7 +65,7 @@ Tone.Buffer.onload = function() {
   });
 
   button4.onPress(function() {
-    sampler.triggerAttack('cymbal');
+    sampler.triggerAttack('kick');
   });
 
   button5.onPress(function() {

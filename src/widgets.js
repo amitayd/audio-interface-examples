@@ -127,6 +127,87 @@ var WIDGET_DEFS = {
     },
   },
 
+  'position': {
+    nxType: 'position',
+    events: ['onPress', 'onRelease', 'onMove'],
+    attributes: {
+      'x': nxValue('x'),
+      'y': nxValue('y'),
+    },
+
+    nxEventRoute: function (widget, emitter, data) {
+      if (data.state === 'click') {
+        emitter.emit('onPress', data.x, data.y);
+      } else if (data.state === 'move') {
+        emitter.emit('onMove', data.x, data.y);
+      } else if (data.state === 'release') {
+        emitter.emit('onRelease', data.x, data.y);
+      } else {
+        console.error('Unexpected event type for position widget: ' + data.state);
+      }
+    },
+  },
+
+  'dial': {
+    nxType: 'dial',
+    events: ['onChange'],
+    attributes: {
+      'value': nxValue('value'),
+      'responsivity': nxAttribute('responsivity'),
+    },
+
+    nxEventRoute: function (widget, emitter, data) {
+      emitter.emit('onChange', data.value);
+    },
+  },
+
+  'slider': {
+    nxType: 'slider',
+    events: ['onChange'],
+    attributes: {
+      'value': nxValue('value'),
+      'horizontal': nxAttribute('hslider')
+    },
+
+    nxEventRoute: function (widget, emitter, data) {
+      emitter.emit('onChange', data.value);
+    },
+  },
+
+  'multitouch': {
+    nxType: 'multitouch',
+    events: ['onChange', 'onTouch0', 'onTouch1', 'onTouch2', 'onTouch3', 'onTouch4',
+      'onRelease0', 'onRelease1', 'onRelease2', 'onRelease3', 'onRelease4'
+    ],
+    attributes: {
+      'text': nxAttribute('text')
+    },
+
+    nxEventRoute: function (widget, emitter, data) {
+      emitter.emit('onChange', data);
+      for (var i = 0; i < 5; i++) {
+        if (data['touch' + i]) {
+          var touchData = data['touch' + i];
+          if (touchData.x > 0 || touchData.y > 0) {
+            // Touch
+            widget['_istouching' + i] = true;
+            emitter.emit('onTouch' + i, touchData.x, touchData.y);
+          } else {
+            // Released
+            if (widget['_istouching' + i]) {
+              emitter.emit('onRelease' + i);
+            }
+            widget['_istouching' + i] = false;
+          }
+        } else {
+          if (widget['_istouching' + i]) {
+            emitter.emit('onRelease' + i);
+          }
+        }
+      }
+    },
+  },
+
   'strings': {
     nxType: 'string',
     events: ['onPluck'],
@@ -264,8 +345,8 @@ Object.keys(WIDGET_DEFS).forEach(function (key) {
 
   if (def.nxType) {
     //“accent”, “fill”, “border”, “black”, and “white”)
-    ['accent', 'fill', 'border', 'black', 'white'].forEach(function(color) {
-      def.attributes[color+'Color'] = nxColorAttribute(color);
+    ['accent', 'fill', 'border', 'black', 'white'].forEach(function (color) {
+      def.attributes[color + 'Color'] = nxColorAttribute(color);
     });
   }
 

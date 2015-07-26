@@ -3,5 +3,8 @@
     "examples/stepSeq.js": "Step sequencer",
     "examples/simon.js": "Simon",
     "examples/guitar.js": "Guitar",
-    "examples/player.js": "Player and sampler"
+    "examples/player.js": "Player and sampler",
+    "examples/dials.js": "Dials and sliders",
+    "examples/multitouch.js": "Multitouch"
+
 }
