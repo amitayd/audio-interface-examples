@@ -110,7 +110,13 @@
             $.get( url, function(data) {
                   //$('#code').val(data);
                   codeEditor.setValue(data);
+                  runCode(data);
                 }, 'text');
+        }
+
+        function runCode(code) {
+            var html = template.replace('{{CODE}}', code);
+            sandboxRunner.executeInIframeSandbox({compiledHtml: html, resultsElement: $('#result')})
         }
 
 
@@ -130,8 +136,7 @@
         $('#run').click(function() {
             //var code = document.getElementById('code').value;
             var code = codeEditor.getValue();
-            var html = template.replace('{{CODE}}', code);
-            sandboxRunner.executeInIframeSandbox({compiledHtml: html, resultsElement: $('#result')})
+            runCode(code);
         })
     });
 </script>

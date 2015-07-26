@@ -5,6 +5,8 @@
     "examples/guitar.js": "Guitar",
     "examples/player.js": "Player and sampler",
     "examples/dials.js": "Dials and sliders",
-    "examples/multitouch.js": "Multitouch"
+    "examples/multitouch.js": "Multitouch",
+    "examples/typewritterVinylToggle.js": "typewritter, Vinyl, Toggle",
+    "examples/range.js": "Range, tilt, Number"
 
 }

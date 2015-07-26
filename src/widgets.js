@@ -253,11 +253,101 @@ var WIDGET_DEFS = {
     nxEventRoute: function (widget, emitter, data) {
       if (data.press === 0) {
         emitter.emit('onRelease');
-      } else {
+      } else if (data.press === 1) {
         emitter.emit('onPress');
       }
     },
   },
+
+  'toggle': {
+    nxType: 'toggle',
+    events: ['onChange'],
+    attributes: {
+      'on': nxValue('value')
+    },
+    nxEventRoute: function (widget, emitter, data) {
+      emitter.emit('onChange', data.value);
+    },
+  },
+
+  'typewriter': {
+    nxType: 'typewriter',
+    events: ['onPress', 'onRelease'],
+    attributes: {
+      'active': nxAttribute('active')
+    },
+    nxEventRoute: function (widget, emitter, data) {
+      if (data.on) {
+        emitter.emit('onPress', data.key, data.ascii);
+      } else {
+        emitter.emit('onRelease', data.key, data.ascii);
+      }
+    },
+  },
+
+  'range': {
+    nxType: 'range',
+    events: ['onChange'],
+    attributes: {
+      'mode': nxAttribute('mode'),
+      'start': nxValue('start'),
+      'stop': nxValue('stop')
+    },
+    nxEventRoute: function (widget, emitter, data) {
+      emitter.emit('onChange', data.start, data.stop, data.size);
+    },
+  },
+
+  'crossfade': {
+    nxType: 'crossfade',
+    events: ['onChange'],
+    attributes: {
+      'value': nxAttribute('value'),
+    },
+    nxEventRoute: function (widget, emitter, data) {
+      emitter.emit('onChange', data.value);
+    },
+  },
+
+  'tilt': {
+    nxType: 'tilt',
+    events: ['onChange'],
+    attributes: {
+      'active': nxAttribute('active'),
+      'text': nxValue('text')
+    },
+    nxEventRoute: function (widget, emitter, data) {
+      emitter.emit('onChange', data.x, data.y, data.z);
+    },
+  },
+
+  'number': {
+    nxType: 'number',
+    events: ['onChange'],
+    attributes: {
+      'min': nxAttribute('min'),
+      'max': nxAttribute('max'),
+      'step': nxAttribute('step'),
+      'sensitivity': nxAttribute('rate'),
+      'decimalPlaces': nxAttribute('decimalPlaces')
+    },
+    nxEventRoute: function (widget, emitter, data) {
+      emitter.emit('onChange', data.value);
+    },
+  },
+
+  'vinyl': {
+    nxType: 'vinyl',
+    events: ['onRotate'],
+    attributes: {
+      'speed': nxAttribute('speed'),
+      'defaultSpeed': nxAttribute('defaultspeed')
+    },
+    nxEventRoute: function (widget, emitter, data) {
+      emitter.emit('onRotate', data.speed);
+    },
+  },
+
 
   'label': {
     nxType: 'comment',
@@ -480,5 +570,6 @@ function createWidget(type, attributes) {
 
 
 module.exports = {
-  createWidget: createWidget
+  createWidget: createWidget,
+  widgetDefinitions: WIDGET_DEFS
 };
