@@ -6,6 +6,15 @@ button1 = createWidget('button', {
 });
 
 position1 = createWidget('position', {
+  width: '50%',
+  height: '50%',
+  top: '00%',
+  left: '50%',
+  fillColor: 'blue'
+});
+
+
+button2 = createWidget('button', {
   width: '20%',
   height: '30%',
   top: '50%',
@@ -38,12 +47,15 @@ button5 = createWidget('button', {
 });
 
 player = createPlayer('resources/samples/drum_cymbal_soft.wav');
-sampler = createSampler({
-  'cymbal': 'resources/samples/drum_cymbal_soft.wav',
-  'snare': 'resources/samples/drum_snare_hard.wav',
-  'kick': 'resources/samples/drum_heavy_kick.wav',
-  'tom': 'resources/samples/drum_tom_hi_hard.wav',
-});
+// sampler = createSampler({
+//   'cymbal': 'resources/samples/drum_cymbal_soft.wav',
+//   'snare': 'resources/samples/drum_snare_hard.wav',
+//   'kick': 'resources/samples/drum_heavy_kick.wav',
+//   'tom': 'resources/samples/drum_tom_hi_hard.wav',
+// });
+// 
+
+drums = createInstrument('drums');
 
 Tone.Buffer.onload = function() {
   button1.onPress(function() {
@@ -52,23 +64,28 @@ Tone.Buffer.onload = function() {
   });
 
   position1.onPress(function(x, y) {
-    sampler.pitch = y * 10;
-    sampler.triggerAttack('cymbal');
+    drums.pitch = y * 10;
+    drums.volume = x;
   });
 
   position1.onMove(function(x, y) {
-    sampler.pitch = y * 10;
+    drums.volume = x;
+    drums.pitch = y * 10;
+  });
+
+  button2.onPress(function() {
+    drums.play('cymbal');
   });
 
   button3.onPress(function() {
-    sampler.triggerAttack('snare');
+    drums.play('snare');
   });
 
   button4.onPress(function() {
-    sampler.triggerAttack('kick');
+    drums.play('kick');
   });
 
   button5.onPress(function() {
-    sampler.triggerAttack('tom');
+    drums.play('tom');
   });
 };

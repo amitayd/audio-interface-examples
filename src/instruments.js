@@ -44,6 +44,27 @@ var normalRangeDecibleConversion = {
   }
 };
 
+var toneAttribute = function (attributeName, type, conversion) {
+  return {
+    attributeName: attributeName,
+    type: type,
+    extend: function (instrument) {
+      var tone = instrument._tone;
+      Object.defineProperty(instrument, attributeName, {
+        get: function () {
+          var toneValue = tone[attributeName];
+          var convertedToneValue = conversion ?conversion.bToA(toneValue) : toneValue;
+          return convertedToneValue;
+        },
+        set: function (value) {
+          var convertedToneValue = conversion ? conversion.aToB(value) : value;
+          tone[attributeName] = convertedToneValue;
+        }
+      });
+    }
+  };
+};
+
 
 var toneSignalAttribute = function (attributeName, type, conversion) {
   return {
@@ -54,11 +75,11 @@ var toneSignalAttribute = function (attributeName, type, conversion) {
       Object.defineProperty(instrument, attributeName, {
         get: function () {
           var toneValue = tone[attributeName].value;
-          var convertedToneValue = conversion.bToA(toneValue);
+          var convertedToneValue = conversion ?conversion.bToA(toneValue) : toneValue;
           return convertedToneValue;
         },
         set: function (value) {
-          var convertedToneValue = conversion.aToB(value);
+          var convertedToneValue = conversion ? conversion.aToB(value) : value;
           tone[attributeName].value = convertedToneValue;
         }
       });
@@ -80,6 +101,13 @@ var toneSignalAttribute = function (attributeName, type, conversion) {
   };
 };
 
+var DRUMS_SAMPLES = {
+        'cymbal': 'resources/samples/drum_cymbal_soft.wav',
+        'snare': 'resources/samples/drum_snare_hard.wav',
+        'kick': 'resources/samples/drum_heavy_kick.wav',
+        'tom': 'resources/samples/drum_tom_hi_hard.wav',
+      };
+
 var instruments = {
   'simple': {
     constructTone: function (attributes) {
@@ -94,16 +122,11 @@ var instruments = {
   },
   'drums': {
     constructTone: function (attributes) {
-      var samples = {
-        'cymbal': 'resources/samples/drum_cymbal_soft.wav',
-        'snare': 'resources/samples/drum_snare_hard.wav',
-        'kick': 'resources/samples/drum_heavy_kick.wav',
-        'tom': 'resources/samples/drum_tom_hi_hard.wav',
-      };
-      return new Tone.Sampler(samples);
+      return new Tone.Sampler(DRUMS_SAMPLES);
     },
     'attributes': [
-      toneSignalAttribute('volume', 'normalRange', normalRangeDecibleConversion)
+      toneSignalAttribute('volume', 'normalRange', normalRangeDecibleConversion),
+      toneAttribute('pitch', 'interval', normalRangeDecibleConversion)
     ]
   }
 };

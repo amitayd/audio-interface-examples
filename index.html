@@ -2,6 +2,8 @@
     <html>
     <head>
         <title>Web Audio examples</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+
         <script type="text/javascript" src="build/bundle.js"></script>
         
         <script>
@@ -38,7 +40,8 @@
         window.setTimeout(function() {
             var src = window.location.search.substr(1);
             var script = document.createElement('script');
-            script.src = '//' + window.location.host +'/' + src;
+            var relativePath = location.pathname.substr(0, location.pathname.lastIndexOf('/'));
+            script.src = '//' + location.host + relativePath +'/' + src;
             console.log(script.src);
             document.body.appendChild(script);
         }, 50);
